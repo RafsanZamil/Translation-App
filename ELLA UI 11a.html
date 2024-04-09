@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JSON File Upload</title>
+    <style>
+      .container {
+        margin: 20px;
+        max-width: 600px; /* Maximum width of the container */
+        width: 100%; /* Makes the container take up 100% of the viewport width on smaller screens */
+        box-sizing: border-box; /* Ensures padding does not add to the total width */
+      }
+      .file-upload {
+        display: inline-block;
+        padding: 10px;
+        background-color: #007bff;
+        color: white;
+        cursor: pointer;
+        margin-bottom: 10px;
+      }
+      .file-name {
+        margin-left: 10px;
+      }
+      .text-container {
+        margin-top: 20px;
+      }
+      .original {
+        background-color: #c7e0ff; /* Blue background color */
+      }
+      .translated {
+        color: black;
+      }
+      .word-link {
+        cursor: pointer;
+        color: inherit;
+        text-decoration: underline;
+      }
+      .btn-container {
+        margin-bottom: 10px;
+      }
+      .btn {
+        padding: 5px 10px;
+        margin-right: 10px;
+        cursor: pointer;
+      }
+      audio {
+        margin-bottom: 10px;
+      }
+      .rewind-section {
+        position: sticky;
+        top: 0;
+        background-color: #f0f0f0;
+        z-index: 1;
+        padding: 10px 0;
+      }
+      .rewind-icons button {
+        font-size: 18px;
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        margin-right: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <input
+      type="file"
+      id="audio-input"
+      style="display: none"
+      accept=".mp3,.wav"
+    />
+    <input type="text" id="audio-link-input" placeholder="Enter Audio Link" />
+    <input type="text" id="json-link-input" placeholder="Enter JSON Link" />
+
+    <button onclick="loadLinks()">Load Links</button>
+    <input
+      type="file"
+      id="audio-input"
+      style="display: none"
+      accept=".mp3,.wav"
+    />
+    <input
+      type="file"
+      id="audio-input"
+      style="display: none"
+      accept=".mp3,.wav"
+    />
+
+    <div class="container">
+      <input
+        type="file"
+        id="audio-input"
+        style="display: none"
+        accept=".mp3,.wav"
+      />
+
+      <label for="audio-input" class="file-upload">Upload Audio File</label>
+      <span class="file-name" id="audio-file-name"></span>
+      <input type="file" id="file-input" style="display: none" accept=".json" />
+      <label for="file-input" class="file-upload">Upload JSON File</label>
+      <span class="file-name" id="file-name"></span>
+      <div class="btn-container">
+        <button class="btn" onclick="increaseTextSize()">
+          Increase Text Size
+        </button>
+        <button class="btn" onclick="decreaseTextSize()">
+          Decrease Text Size
+        </button>
+      </div>
+      <div class="rewind-section">
+        <audio controls id="audio-player"></audio>
+        <div class="rewind-icons">
+          <button onclick="rewindAudio(-3)">&#9664;&#9664; 3s</button>
+          <button onclick="rewindAudio(-5)">&#9664;&#9664; 5s</button>
+          <button onclick="rewindAudio(-10)">&#9664;&#9664; 10s</button>
+          <button onclick="togglePlayPause()" id="play-pause-btn">
+            &#9658;
+          </button>
+        </div>
+      </div>
+      <div class="text-container" id="text-container">
+        <!-- Text content will be added here dynamically -->
+      </div>
+    </div>
+
+    <script>
+      // Function to handle mouseup event on words
+      function handleWordSelection(event) {
+        const selectedWord = window.getSelection().toString().trim();
+
+        if (selectedWord) {
+          const hoveredResult = getHoveredResult(selectedWord);
+          showHoveredResult(event.clientX, event.clientY, hoveredResult);
+        }
+      }
+
+      // Event listener for mouseup event on words
+      document
+        .getElementById("text-container")
+        .addEventListener("mouseup", handleWordSelection);
+      // Event listener for double-click event on words
+      document
+        .getElementById("text-container")
+        .addEventListener("dblclick", handleWordSelection);
+
+      // Function to handle double-click event on words
+      function handleWordSelection(event) {
+        const selectedWord = window.getSelection().toString().trim();
+
+        if (selectedWord) {
+          const hoveredResult = getHoveredResult(selectedWord);
+          showHoveredResult(event.clientX, event.clientY, hoveredResult);
+        }
+      }
+      // Function to generate hovered result for a selected word (dummy function for now)
+      function getHoveredResult(selectedWord) {
+        // This is a dummy result, you can replace it with the actual translation result
+        return "Hovered result for '" + selectedWord + "'";
+      }
+
+      // Function to show hovered result
+      function showHoveredResult(x, y, hoveredResult) {
+        // Create a tooltip element
+        const tooltip = document.createElement("div");
+        tooltip.textContent = hoveredResult;
+        tooltip.style.position = "absolute";
+        tooltip.style.top = y + "px";
+        tooltip.style.left = x + "px";
+        tooltip.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
+        tooltip.style.padding = "5px";
+        tooltip.style.border = "1px solid #ccc";
+        tooltip.style.borderRadius = "5px";
+        tooltip.style.zIndex = "9999";
+
+        // Append the tooltip to the body
+        document.body.appendChild(tooltip);
+
+        // Remove the tooltip after a certain period of time (e.g., 3 seconds)
+        setTimeout(() => {
+          document.body.removeChild(tooltip);
+        }, 3000);
+      }
+
+      //for links
+      function loadLinks() {
+        const audioLink = document.getElementById("audio-link-input").value;
+        const jsonLink = document.getElementById("json-link-input").value;
+
+        if (audioLink) {
+          fetchAudio(audioLink);
+        }
+
+        if (jsonLink) {
+          loadJson(jsonLink);
+        }
+      }
+      function loadJson(jsonUrl) {
+        fetch(jsonUrl)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            // Process the JSON data
+            displayText(data.record.output);
+            const jsonKey = "json_" + Date.now(); // Unique key for JSON data
+            localStorage.setItem(jsonKey, JSON.stringify(data.record.output));
+            updateQueryParams({ json: jsonKey });
+          })
+          .catch((error) => {
+            console.error("Error loading JSON from URL:", error);
+          });
+      }
+
+      ///audio link
+
+      // Function to load audio from a URL
+      function loadAudio(audioUrl) {
+        const audioPlayer = document.getElementById("audio-player");
+        audioPlayer.src = audioUrl;
+        audioPlayer.play(); // Autoplay audio
+      }
+
+      function fetchAudio(url) {
+        // URL of the proxy server
+        const proxyUrl = "https://cors-anywhere.herokuapp.com/";
+        const trimmedUrl = url.replace(/^https?:\/\//, "");
+
+        // Append the target URL to the proxy URL
+        const targetUrl = proxyUrl + trimmedUrl;
+
+        fetch(targetUrl, {
+          method: "GET",
+          headers: {
+            Origin: "your-origin-url.com", // Replace with your origin URL
+            "X-Requested-With": "XMLHttpRequest",
+          },
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.blob(); // Access the response body as a Blob
+          })
+          .then((data) => {
+            // Create a fake File object with the audio Blob
+            const fakeFile = new File([data], "audio.mp3", {
+              type: "audio/mp3",
+            });
+
+            // Display the audio file
+            displayAudioFile(fakeFile);
+          })
+          .catch((error) => {
+            console.error("Error fetching audio:", error);
+          });
+      }
+      //for uploading
+      let textSize = 16; // Initial text size
+      //json
+      document
+        .getElementById("file-input")
+        .addEventListener("change", function (event) {
+          const file = event.target.files[0];
+          if (file) {
+            document.getElementById("file-name").textContent = file.name;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              const content = e.target.result;
+              let data = JSON.parse(content);
+              data = data.record;
+              displayText(data.output);
+
+              const jsonKey = "json_" + Date.now(); // Unique key for JSON data
+              localStorage.setItem(jsonKey, JSON.stringify(data.output));
+              updateQueryParams({ json: jsonKey });
+            };
+            reader.readAsText(file);
+          }
+        });
+      // Load default audio and JSON links on page load
+      document.addEventListener("DOMContentLoaded", function () {
+        loadDefaultLinks();
+      });
+
+      function loadDefaultLinks() {
+        const defaultAudioUrl =
+          "https://viascend.co/wp-content/uploads/2024/04/ShyamLLM01.mp3"; // Default audio URL
+        const defaultJsonUrl =
+          "https://api.jsonbin.io/v3/b/6615504eacd3cb34a835d612"; // Default JSON URL
+
+        // Check if the input fields are empty, then load default URLs
+        if (!document.getElementById("audio-link-input").value) {
+          document.getElementById("audio-link-input").value = defaultAudioUrl;
+          fetchAudio(defaultAudioUrl);
+        }
+        if (!document.getElementById("json-link-input").value) {
+          document.getElementById("json-link-input").value = defaultJsonUrl;
+          loadJson(defaultJsonUrl);
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const jsonKey = urlParams.get("json");
+
+        // Restore JSON data from local storage if available
+        if (jsonKey) {
+          const jsonData = localStorage.getItem(jsonKey);
+          if (jsonData) {
+            const data = JSON.parse(jsonData);
+            displayText(data);
+          }
+        }
+      });
+
+      function updateQueryParams(params) {
+        const urlParams = new URLSearchParams(window.location.search);
+        for (const key in params) {
+          urlParams.set(key, params[key]);
+        }
+        const newParams = urlParams.toString();
+        history.pushState({}, "", window.location.pathname + "?" + newParams);
+      }
+      //audio
+      document;
+      // Function to display the audio file
+      function displayAudioFile(file) {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          const audioUrl = event.target.result;
+          const audioPlayer = document.getElementById("audio-player");
+          audioPlayer.src = audioUrl;
+          document.getElementById("audio-file-name").textContent = file.name;
+          const urlParams = new URLSearchParams(window.location.search);
+          urlParams.set("audio", file.name);
+          const newParams = urlParams.toString();
+          history.pushState({}, "", window.location.pathname + "?" + newParams);
+        };
+        reader.readAsDataURL(file);
+      }
+
+      // Event listener for file input change
+      document
+        .getElementById("audio-input")
+        .addEventListener("change", function (event) {
+          const file = event.target.files[0];
+          if (file) {
+            displayAudioFile(file); // Display the selected audio file
+          }
+        });
+
+      // Function to retrieve and display the audio file upon page reload
+      window.addEventListener("load", function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const audioFileName = urlParams.get("audio");
+        if (audioFileName) {
+          const audioUrl = sessionStorage.getItem("selectedAudioFile");
+          if (audioUrl) {
+            const audioPlayer = document.getElementById("audio-player");
+            audioPlayer.src = audioUrl;
+            document.getElementById("audio-file-name").textContent =
+              audioFileName;
+          }
+        }
+      });
+
+      //display text  json
+      function displayText(output) {
+        const container = document.getElementById("text-container");
+        container.innerHTML = "";
+        let isFirstOriginal = true;
+        output.forEach((item) => {
+          const originalText = item.Original;
+          const translatedText = item.Translated;
+
+          const originalParagraph = document.createElement("p");
+          const translatedParagraph = document.createElement("p");
+
+          const originalWords = originalText.split(" ");
+          const translatedWords = translatedText.split(" ");
+
+          originalWords.forEach((word) => {
+            const span = document.createElement("span");
+            span.textContent = word;
+            span.classList.add("original", "word-link");
+
+            originalParagraph.appendChild(span);
+            originalParagraph.appendChild(document.createTextNode(" "));
+          });
+
+          if (!isFirstOriginal) {
+            container.appendChild(document.createElement("br")); // Add line gap between translations
+          } else {
+            isFirstOriginal = false;
+          }
+
+          translatedWords.forEach((word) => {
+            const span = document.createElement("span");
+            span.textContent = word;
+
+            translatedParagraph.appendChild(span);
+            translatedParagraph.appendChild(document.createTextNode(" "));
+          });
+
+          container.appendChild(originalParagraph);
+          container.appendChild(translatedParagraph);
+        });
+      }
+
+      function openGoogleSearch(word) {
+        const searchUrl =
+          "https://www.google.com/search?q=" + encodeURIComponent(word);
+        window.open(searchUrl, "_blank");
+      }
+
+      function increaseTextSize() {
+        textSize += 2;
+        document.getElementById("text-container").style.fontSize =
+          textSize + "px";
+      }
+
+      function decreaseTextSize() {
+        if (textSize > 10) {
+          textSize -= 2;
+          document.getElementById("text-container").style.fontSize =
+            textSize + "px";
+        }
+      }
+
+      function rewindAudio(seconds) {
+        const audioPlayer = document.getElementById("audio-player");
+        audioPlayer.currentTime += seconds;
+      }
+      function togglePlayPause() {
+        const audioPlayer = document.getElementById("audio-player");
+        const playPauseBtn = document.getElementById("play-pause-btn");
+        if (audioPlayer.paused || audioPlayer.ended) {
+          audioPlayer.play();
+          playPauseBtn.innerHTML = "&#10074;&#10074;"; // Pause symbol
+        } else {
+          audioPlayer.pause();
+          playPauseBtn.innerHTML = "&#9658;"; // Play symbol
+        }
+      }
+    </script>
+  </body>
+</html>
