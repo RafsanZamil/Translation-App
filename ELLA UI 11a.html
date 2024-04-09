@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>JSON File Upload</title>
+    <base href="/myapp/" />
+
     <style>
       .container {
         margin: 20px;
@@ -126,24 +128,6 @@
 
     <script>
       // Function to handle mouseup event on words
-      function handleWordSelection(event) {
-        const selectedWord = window.getSelection().toString().trim();
-
-        if (selectedWord) {
-          const hoveredResult = getHoveredResult(selectedWord);
-          showHoveredResult(event.clientX, event.clientY, hoveredResult);
-        }
-      }
-
-      // Event listener for mouseup event on words
-      document
-        .getElementById("text-container")
-        .addEventListener("mouseup", handleWordSelection);
-      // Event listener for double-click event on words
-      document
-        .getElementById("text-container")
-        .addEventListener("dblclick", handleWordSelection);
-
       // Function to handle double-click event on words
       function handleWordSelection(event) {
         const selectedWord = window.getSelection().toString().trim();
@@ -153,6 +137,7 @@
           showHoveredResult(event.clientX, event.clientY, hoveredResult);
         }
       }
+
       // Function to generate hovered result for a selected word (dummy function for now)
       function getHoveredResult(selectedWord) {
         // This is a dummy result, you can replace it with the actual translation result
@@ -161,7 +146,13 @@
 
       // Function to show hovered result
       function showHoveredResult(x, y, hoveredResult) {
-        // Create a tooltip element
+        // Remove the previous hovered result if exists
+        const existingTooltip = document.getElementById("tooltip");
+        if (existingTooltip) {
+          document.body.removeChild(existingTooltip);
+        }
+
+        // Create a new tooltip element
         const tooltip = document.createElement("div");
         tooltip.textContent = hoveredResult;
         tooltip.style.position = "absolute";
@@ -172,6 +163,7 @@
         tooltip.style.border = "1px solid #ccc";
         tooltip.style.borderRadius = "5px";
         tooltip.style.zIndex = "9999";
+        tooltip.id = "tooltip"; // Set an id for easy access
 
         // Append the tooltip to the body
         document.body.appendChild(tooltip);
@@ -181,6 +173,11 @@
           document.body.removeChild(tooltip);
         }, 3000);
       }
+
+      // Event listener for double-click event on words
+      document
+        .getElementById("text-container")
+        .addEventListener("dblclick", handleWordSelection);
 
       //for links
       function loadLinks() {
